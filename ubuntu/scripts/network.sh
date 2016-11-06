@@ -1,6 +1,6 @@
 #!/bin/sh
 
-echo >/etc/network/interfaces <<EOF
+cat <<EOF >/etc/network/interfaces
 auto lo
 iface lo inet loopback
 
