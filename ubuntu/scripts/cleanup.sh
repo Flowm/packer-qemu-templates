@@ -5,7 +5,9 @@ SSH_USER=${SSH_USERNAME:-vagrant}
 # Make sure udev does not block our network - http://6.ptmc.org/?p=164
 echo "==> Cleaning up udev rules"
 rm -rf /dev/.udev/
-rm /lib/udev/rules.d/75-persistent-net-generator.rules
+if [ -e "/lib/udev/rules.d/75-persistent-net-generator.rules" ]; then
+  rm /lib/udev/rules.d/75-persistent-net-generator.rules
+fi
 
 echo "==> Cleaning up leftover dhcp leases"
 # Ubuntu 10.04
@@ -18,16 +20,16 @@ if [ -d "/var/lib/dhcp" ]; then
 fi
 
 echo "==> Cleaning up tmp"
-rm -rf /tmp/*
+find /tmp -mindepth 1 -delete
 
 echo "==> Installed packages"
 dpkg --get-selections | grep -v deinstall
 
-DISK_USAGE_BEFORE_CLEANUP=$(df -h)
+DISK_USAGE_BEFORE_CLEANUP=$(df)
 
 # Remove some packages to get a minimal install
 echo "==> Removing all linux kernels except the currrent one"
-dpkg --list | awk '{ print $2 }' | grep 'linux-image-3.*-generic' | grep -v $(uname -r) | xargs apt-get -y purge
+dpkg --list | awk '{ print $2 }' | grep 'linux-image-4.*-generic' | grep -v $(uname -r) | xargs apt-get -y purge
 
 # Cleanup apt cache
 echo "==> Clean apt cache"
@@ -42,7 +44,6 @@ rm -f /home/${SSH_USER}/.bash_history
 
 # Clean up log files
 find /var/log -type f | while read f; do echo -ne '' > "${f}"; done;
-journalctl --vacuum-time=1seconds
 
 echo "==> Clearing last login information"
 >/var/log/lastlog
@@ -85,12 +86,15 @@ echo "==> Clearing last login information"
 # dd if=/dev/zero of=/EMPTY bs=1M  || echo "dd exit code $? is suppressed"
 # rm -f /EMPTY
 
-# # Make sure we wait until all the data is written to disk, otherwise
-# # Packer might quite too early before the large files are deleted
+# Make sure we wait until all the data is written to disk, otherwise
+# Packer might quite too early before the large files are deleted
 sync
 
-# echo "==> Disk usage before cleanup"
-# echo ${DISK_USAGE_BEFORE_CLEANUP}
+echo "==> Disk usage before cleanup"
+echo -e ${DISK_USAGE_BEFORE_CLEANUP}
 
 echo "==> Disk usage after cleanup"
-df -h
+df
+
+# Ensure that no root password is set
+usermod -p '*' root
