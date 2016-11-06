@@ -9,10 +9,8 @@
         "file=/floppy/{{ user `preseed` }} ",
         "debian-installer={{ user `locale` }} auto locale={{ user `locale` }} kbd-chooser/method=us ",
         "hostname={{ user `hostname` }} ",
-        "fb=false debconf/frontend=noninteractive ",
-        "keyboard-configuration/modelcode=SKIP ",
-        "keyboard-configuration/layout=USA ",
-        "keyboard-configuration/variant=USA console-setup/ask_detect=false ",
+        "keyboard-configuration/layoutcode=us ",
+        "console-setup/ask_detect=false ",
         "passwd/user-fullname={{ user `ssh_fullname` }} ",
         "passwd/user-password={{ user `ssh_password` }} ",
         "passwd/user-password-again={{ user `ssh_password` }} ",
@@ -54,7 +52,6 @@
     {
       "environment_vars": [
         "UPDATE={{user `update`}}",
-        "INSTALL_DEV_PACKAGES={{user `install_dev_packages`}}",
         "INSTALL_VAGRANT_KEY={{user `install_vagrant_key`}}",
         "SSH_USERNAME={{user `ssh_username`}}",
         "SSH_PASSWORD={{user `ssh_password`}}",
@@ -67,8 +64,8 @@
       "execute_command": "echo '{{ user `ssh_password` }}' | {{.Vars}} sudo -E -S bash '{{.Path}}'",
       "scripts": [
         "scripts/vagrant.sh",
-        "scripts/sshd.sh",
-        "scripts/packages.sh",
+        "scripts/update.sh",
+        "scripts/network.sh",
         "scripts/cleanup.sh"
       ],
       "type": "shell"
@@ -86,7 +83,6 @@
     "http_proxy": "{{env `http_proxy`}}",
     "https_proxy": "{{env `https_proxy`}}",
     "install_vagrant_key": "true",
-    "install_dev_packages": "false",
     "iso_checksum": "de5ee8665048f009577763efbf4a6f0558833e59",
     "iso_checksum_type": "sha1",
     "iso_name": "ubuntu-16.04-server-amd64.iso",

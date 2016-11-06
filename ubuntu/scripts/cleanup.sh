@@ -15,37 +15,25 @@ fi
 # Ubuntu 12.04 & 14.04
 if [ -d "/var/lib/dhcp" ]; then
     rm /var/lib/dhcp/*
-fi 
-
-UBUNTU_VERSION=$(lsb_release -sr)
-if [[ ${UBUNTU_VERSION} == 16.04 ]] || [[ ${UBUNTU_VERSION} == 16.10 ]]; then
-    # Modified version of
-    # https://github.com/cbednarski/packer-ubuntu/blob/master/scripts-1604/vm_cleanup.sh#L9-L15
-    # Instead of eth0 the interface is now called ens5 to mach the PCI
-    # slot, so we need to change the networking scripts to enable the
-    # correct interface.
-    #
-    # NOTE: After the machine is rebooted Packer will not be able to reconnect
-    # (Vagrant will be able to) so make sure this is done in your final
-    # provisioner.
-    sed -i "s/ens3/ens5/g" /etc/network/interfaces
 fi
-
-# Add delay to prevent "vagrant reload" from failing
-echo "pre-up sleep 2" >> /etc/network/interfaces
 
 echo "==> Cleaning up tmp"
 rm -rf /tmp/*
-
-# Cleanup apt cache
-apt-get -y autoremove --purge
-apt-get -y clean
-apt-get -y autoclean
 
 echo "==> Installed packages"
 dpkg --get-selections | grep -v deinstall
 
 DISK_USAGE_BEFORE_CLEANUP=$(df -h)
+
+# Remove some packages to get a minimal install
+echo "==> Removing all linux kernels except the currrent one"
+dpkg --list | awk '{ print $2 }' | grep 'linux-image-3.*-generic' | grep -v $(uname -r) | xargs apt-get -y purge
+
+# Cleanup apt cache
+echo "==> Clean apt cache"
+apt-get -y autoremove --purge
+apt-get -y clean
+apt-get -y autoclean
 
 # Remove Bash history
 unset HISTFILE
@@ -54,6 +42,7 @@ rm -f /home/${SSH_USER}/.bash_history
 
 # Clean up log files
 find /var/log -type f | while read f; do echo -ne '' > "${f}"; done;
+journalctl --vacuum-time=1seconds
 
 echo "==> Clearing last login information"
 >/var/log/lastlog
@@ -98,10 +87,10 @@ echo "==> Clearing last login information"
 
 # # Make sure we wait until all the data is written to disk, otherwise
 # # Packer might quite too early before the large files are deleted
-# sync
+sync
 
 # echo "==> Disk usage before cleanup"
 # echo ${DISK_USAGE_BEFORE_CLEANUP}
 
-# echo "==> Disk usage after cleanup"
-# df -h
+echo "==> Disk usage after cleanup"
+df -h
